@@ -1150,3 +1150,33 @@ body *:not(script):not(style) {
 /* Don't animate transforms/animations used for UI interactions */
 .b-btn:active,
 .b-toast { transition: none; }
+
+
+
+/*    logo css */
+/* Logo Styling */
+.b-nav__logo {
+  height: 32px; /* Adjust based on your nav height */
+  width: auto;
+  margin-right: 10px;
+  vertical-align: middle;
+  /* Optional: filter to make it pop more in dark/light modes */
+  transition: transform 0.3s ease;
+}
+
+.b-nav__brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.b-nav__brand:hover .b-nav__logo {
+  transform: scale(1.1);
+}
+
+/* Light mode adjustment if the logo needs more contrast */
+body.light-mode .b-nav__logo {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}

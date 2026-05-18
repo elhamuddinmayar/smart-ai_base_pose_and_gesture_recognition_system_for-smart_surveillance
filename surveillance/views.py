@@ -11,32 +11,56 @@ from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.db import models
-from django.http import JsonResponse, HttpResponse, Http404
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-
-# ReportLab PDF
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, HRFlowable
-)
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-
+from reportlab.platypus import ( SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, HRFlowable)
+from reportlab.lib.enums import TA_CENTER
 from .forms import UserRegistrationForm, LoginForm, TargetPersonForm, UserUpdateForm
-from .models import (
-    TargetPerson, SecurityProfile, DetectionEvent,
-    TargetAssignment, Notification
-)
+from .models import (TargetPerson, SecurityProfile, DetectionEvent,TargetAssignment, Notification)
+
+
+
+""" 
+1:import os : This imports the os module, which provides a way of using operating system dependent functionality. In this code, it is used for handling file paths and operations related to file storage.
+2:import io : This imports the io module, which provides the Python interfaces to stream handling. In this code, it is used for creating in-memory byte streams, particularly for generating PDF files without saving them to disk.
+3:from datetime import timedelta : This imports the timedelta class from the datetime module. timedelta is used to represent a duration, the difference between two dates or times. In this code, it is used for calculating expiration times for targets and other time-based operations.
+4:from django.contrib import messages : This imports the messages framework from Django, which allows you to store messages in one request and retrieve them for display in a subsequent request. In this code, it is used to provide feedback to users after actions such as form submissions or target assignments.
+5:from django.contrib.admin.views.decorators import staff_member_required : This imports the staff_member_required decorator, which is used to restrict access to views to users who are marked as staff members in the Django admin. In this code, it is used to protect certain views that should only be accessible by staff.
+6:from django.contrib.auth import authenticate, login, logout : This imports the authenticate, login, and logout functions from Django's authentication framework. These functions are used to handle user authentication and session management in the application.
+7:from django.contrib.auth.decorators import login_required, user_passes_test : This imports the login_required and user_passes_test decorators. login_required is used to ensure that a view can only be accessed by authenticated users, while user_passes_test allows you to specify a custom test function to determine if a user has access to a view.
+8:from django.contrib.auth.models import User, Group : This imports the User and Group models from Django's authentication system. The User model represents users in the application, while the Group model allows for grouping users and assigning permissions.
+9:from django.core.exceptions import PermissionDenied : This imports the PermissionDenied exception, which can be raised when a user does not have permission to access a particular view or perform a certain action.
+10:from django.core.mail import send_mail : This imports the send_mail function, which is used to send email messages. In this code, it is used to send notifications to users when certain events occur, such as target assignments or detection verifications.
+11:from django.core.paginator import Paginator : This imports the Paginator class, which is used to paginate querysets. In this code, it is used to paginate lists of targets, detection events, and notifications for better user experience.
+12:from django.conf import settings : This imports the settings object, which contains the configuration for the Django project. It is used in this code to access settings such as email configuration and file storage paths.
+13:from django.db import models : This imports the models module, which is used to define database models in Django. In this code, it is used to interact with the database models defined in the application.
+14:from django.http import JsonResponse, HttpResponse, Http404 : This imports the JsonResponse, HttpResponse, and Http404 classes. JsonResponse is used to return JSON responses from views, HttpResponse is used to return standard HTTP responses, and Http404 is raised when a requested resource is not found.
+15:from django.shortcuts import redirect, render, get_object_or_404 : This imports the redirect, render, and get_object_or_404 functions. redirect is used to redirect users to a different URL, render is used to render templates with context data, and get_object_or_404 is used to retrieve an object from the database or raise a 404 error if it does not exist.
+16:from django.utils import timezone : This imports the timezone module, which provides utilities for working with time zones. In this code, it is used to handle date and time operations in a timezone-aware manner.
+17:from django.utils.translation import gettext as _ : This imports the gettext function for internationalization. It allows you to mark strings for translation in the application, making it easier to support multiple languages.
+18:from asgiref.sync import async_to_sync : This imports the async_to_sync function, which is used to call asynchronous functions from synchronous code. In this code, it is used to send notifications through Django Channels.
+19:from channels.layers import get_channel_layer : This imports the get_channel_layer function, which is used to get the channel layer for sending messages in Django Channels. In this code, it is used to send real-time notifications to users.
+20:from reportlab.lib import colors : This imports the colors module from ReportLab, which provides a set of predefined colors that can be used in PDF generation.
+21:from reportlab.lib.pagesizes import A4 : This imports the A4 page size definition from ReportLab, which is used to set the page size for generated PDF documents.
+22:from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle : This imports functions for working with styles in ReportLab. getSampleStyleSheet provides a set of predefined styles, while ParagraphStyle allows you to define custom styles for paragraphs in the PDF.
+23:from reportlab.lib.units import cm : This imports the cm unit from ReportLab, which is used to specify measurements in centimeters when generating PDFs.
+24:from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, HRFlowable) : This imports various classes from ReportLab's platypus module, which are used to build PDF documents. SimpleDocTemplate is used to create a PDF document template, Paragraph is used for text content, Spacer is used to add space between elements, Table and TableStyle are used to create and style tables, Image is used to include images in the PDF, and HRFlowable is used to add horizontal rules.
+25:from reportlab.lib.enums import TA_CENTER : This imports the TA_CENTER constant, which is used to specify center alignment for text in ReportLab.
+26:from .forms import UserRegistrationForm, LoginForm, TargetPersonForm, UserUpdateForm : This imports form classes defined in the forms.py file of the application. These forms are used for user registration, login, target person management, and user profile updates.
+27:from .models import (TargetPerson, SecurityProfile, DetectionEvent, TargetAssignment, Notification) : This imports the database models defined in the models.py file of the application. These models represent the core entities in the application, such as target persons, detection events, assignments, and notifications.
+"""
 
 
 #   Role helpers 
-
+# These functions check the role of the user to control access to certain views and features. They are used in conjunction with decorators like @user_passes_test to restrict access based on user roles (admin, supervisor, operator). The functions check if the user is authenticated and then verify their role either through the is_superuser flag or a custom profile attribute.
 def is_admin(user):
     if not user.is_authenticated:
         return False
@@ -44,7 +68,7 @@ def is_admin(user):
         hasattr(user, 'profile') and user.profile.role == 'admin'
     )
 
-
+# A more general check for privileged staff (admin or supervisor)
 def is_privileged_staff(user):
     return user.is_authenticated and (
         user.is_superuser or (
@@ -52,7 +76,7 @@ def is_privileged_staff(user):
         )
     )
 
-
+# Check if user is an operator
 def is_operator(user):
     return user.is_authenticated and (
         hasattr(user, 'profile') and user.profile.role == 'operator'
@@ -60,7 +84,7 @@ def is_operator(user):
 
 
 # ── Notification push ─────────────────────────────────────────────────────────
-
+# This helper function creates a notification in the database, sends a real-time update via Django Channels, and optionally sends an email to the recipient. It is used throughout the views to notify users of important events such as target assignments and detection verifications.
 def _push_notification(recipient, notification_type, title, message, assignment=None, event=None):
     #we are creating object in database
     notif = Notification.objects.create(
@@ -102,26 +126,23 @@ def _push_notification(recipient, notification_type, title, message, assignment=
 
 # ── Core pages ────────────────────────────────────────────────────────────────
 
-## REPLACE your existing dashboard() view in surveillance/views.py with this:
 
+# The dashboard view aggregates various pieces of data to provide an overview of the system's status. It shows recent detection events, counts of different types of detections, pending verifications, recent assignments, and notifications. The data is scoped based on the user's role, ensuring that supervisors and operators only see relevant information.
 @login_required
 def dashboard(request):
     from django.utils import timezone
+    # from django.db models import Count, Q: This imports the Count and Q classes from Django's database models module. Count is used for aggregating counts of records in querysets, while Q is used for building complex queries with OR and AND conditions. In this code, they are used to calculate counts of detection events and to filter querysets based on certain conditions.
     from django.db.models import Count, Q
-
+    
     now  = timezone.now()
     user = request.user
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # ── Targets (non-expired) ─────────────────────────────────────────────
-    targets = TargetPerson.objects.filter(
-        Q(expires_at__isnull=True) | Q(expires_at__gt=now)
-    )
+    targets = TargetPerson.objects.filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
 
     # ── Detection events scoped by role ──────────────────────────────────
-    events_qs = DetectionEvent.objects.select_related(
-        'matched_target', 'camera'
-    ).order_by('-timestamp')
+    events_qs = DetectionEvent.objects.select_related('matched_target', 'camera').order_by('-timestamp')
 
     if is_admin(user):
         scoped_events = events_qs
@@ -131,9 +152,7 @@ def dashboard(request):
             matched_target__uploaded_by=user
         )
     elif hasattr(user, 'profile') and user.profile.role == 'operator':
-        scoped_events = events_qs.filter(
-            related_assignment__assigned_to=user
-        )
+        scoped_events = events_qs.filter(related_assignment__assigned_to=user)
     else:
         scoped_events = events_qs.none()
 
@@ -159,9 +178,7 @@ def dashboard(request):
     today_detections = scoped_events.filter(timestamp__gte=today_start).count()
 
     # ── Pending verifications (for the queue panel) ───────────────────────
-    pv_qs = DetectionEvent.objects.filter(
-        verification_status='pending'
-    ).select_related('matched_target', 'camera')
+    pv_qs = DetectionEvent.objects.filter(verification_status='pending').select_related('matched_target', 'camera')
     if not is_admin(user):
         pv_qs = pv_qs.filter(matched_target__uploaded_by=user)
     pending_events    = pv_qs.order_by('-timestamp')[:6]
@@ -177,14 +194,9 @@ def dashboard(request):
         recent_assignments = TargetAssignment.objects.filter(assigned_to=user).select_related('target', 'assigned_by').order_by('-created_at')[:5]
 
     # ── Recent notifications ──────────────────────────────────────────────
-    recent_notifications = Notification.objects.filter(
-        recipient=user
-    ).order_by('-created_at')[:6]
-
-    unread_count = Notification.objects.filter(
-        recipient=user, is_read=False
-    ).count()
-
+    recent_notifications = Notification.objects.filter(recipient=user).order_by('-created_at')[:6]
+    unread_count = Notification.objects.filter(recipient=user, is_read=False).count()
+    
     # ── Sparkline data (last 20 hours of event counts) ────────────────────
     from django.utils.timezone import timedelta
     spark_data = []

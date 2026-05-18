@@ -7,8 +7,12 @@ media/
 venv/
 #files  
 githubhelper.txt
+functionality.txt
 help.txt
 functionality.txt
 collect_all_code.py
 collect_all_hjc_code.py
+collect_python_code.py
 html_js_css.txt
+python.txt
+open_rtps_connection.py

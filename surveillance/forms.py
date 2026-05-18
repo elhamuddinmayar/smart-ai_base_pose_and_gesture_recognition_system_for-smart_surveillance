@@ -3,6 +3,14 @@ from django.contrib.auth.models import User
 from .models import TargetPerson, SecurityProfile
 import re
 
+""" 
+1:UserRegistrationForm: A form for registering new security personnel. It extends ModelForm based on Django's built-in User model, but also includes additional fields for the SecurityProfile (badge number, role, profile picture, emergency contact). It has custom validation to ensure unique badge numbers and valid phone formats.
+2:LoginForm: A simple form for user authentication, allowing login via either username or email.
+3:TargetPersonForm: A ModelForm for creating and updating TargetPerson records. It includes custom widgets for better UX and validation for fields like age and phone number.
+4:UserUpdateForm: Similar to UserRegistrationForm but intended for updating existing user profiles. It allows changing the user's name, email, badge number, role, emergency contact, and profile picture, with appropriate validation.
+5: The forms use Bootstrap classes for styling and include HTML5 validation attributes to enhance the user experience. Custom clean methods ensure that data integrity is maintained according to the application's requirements.
+
+"""
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(
@@ -21,8 +29,7 @@ class UserRegistrationForm(forms.ModelForm):
             'autocomplete': 'new-password',
         })
     )
-
-    # Extra fields for SecurityProfile
+    
     badge_number = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
@@ -57,7 +64,7 @@ class UserRegistrationForm(forms.ModelForm):
             'maxlength': '25',
         })
     )
-
+    # The Meta class defines which model this form is based on and which fields to include. It also specifies custom widgets for better styling and user experience
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
@@ -207,7 +214,7 @@ class TargetPersonForm(forms.ModelForm):
                 'maxlength': '255',
             }),
         }
-
+    # The __init__ method is overridden to add a common CSS class to all fields for consistent styling. Custom clean methods are defined for age and phone number to ensure data validity according to the application's requirements.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():

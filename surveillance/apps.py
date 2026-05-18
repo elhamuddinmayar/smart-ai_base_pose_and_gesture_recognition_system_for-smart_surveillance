@@ -3,19 +3,17 @@ import sys
 import os
 
 
+"""
+1:from django.apps import AppConfig is used to define the configuration for the 'surveillance' app. The SurveillanceConfig class inherits from AppConfig and specifies the default auto field type and the name of the app. The ready method is overridden to perform initialization tasks when the app is ready.
+2:import sys and os are imported to handle command-line arguments and interact with the operating system, respectively. The ready method checks for specific management commands (like 'migrate', 'makemigrations', etc.) and skips the engine import if any of those commands are present, preventing unnecessary initialization during certain operations. If the engine import fails, it catches the exception and prints a warning message.
+"""
+
 class SurveillanceConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'surveillance'
-
+    
+    # The ready() method is called when the app is fully loaded. It checks for specific management commands and imports the engine module if none of those commands are present. This ensures that the shared frame buffer is initialized before any HTTP request is processed, while avoiding unnecessary initialization during certain management operations.
     def ready(self):
-        # ── Do NOT start cameras here ────────────────────────────────────────
-        # Camera auto-start is handled exclusively by CameraConfig.ready()
-        # (camera/apps.py).  Starting cameras from two AppConfig.ready()
-        # methods caused every camera to be launched twice on boot.
-        #
-        # We only import the engine module here so the shared frame buffer
-        # (set_frame / get_frame) is initialised before any HTTP request hits.
-        # ─────────────────────────────────────────────────────────────────────
         ignored_cmds = [
             'migrate', 'makemigrations', 'shell', 'test',
             'collectstatic', 'createsuperuser',

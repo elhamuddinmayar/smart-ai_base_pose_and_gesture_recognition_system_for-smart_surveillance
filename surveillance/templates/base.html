@@ -8,6 +8,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0e1a">
+  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
   <title>{% block title %}Butterfly AI{% endblock %} — Butterfly</title>
 
   <!-- Font Awesome -->
@@ -37,7 +38,11 @@
 <nav class="b-nav" role="navigation" aria-label="Main navigation">
 
   <!-- Brand -->
-  <a href="{% url 'home' %}" class="b-nav__brand" aria-label="Butterfly Home">BUTTERFLY</a>
+  <!-- Brand -->
+<a href="{% url 'home' %}" class="b-nav__brand" aria-label="Butterfly Home">
+  <img src="{% static 'img/logo.png' %}" alt="Butterfly AI Logo" class="b-nav__logo">
+  <span>BUTTERFLY</span>
+</a>
 
   <!-- Mobile toggle — sits after brand, pushed right by flex -->
   <button class="b-nav__toggle" id="b-nav-toggle"
